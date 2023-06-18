@@ -13,7 +13,7 @@
 
 ```
 git clone 
-pip3 install -r requirement
+pip3 install -r requirements.txt
 ```
 
 
