@@ -12,7 +12,7 @@
 + 2.除`loguru、schedule`库外，其他都是标准库，因此需要安装以上两个库。
 
 ```
-git clone 
+git clone https://github.com/rootklt/liangongbao_wechat.git
 pip3 install -r requirements.txt
 ```
 
