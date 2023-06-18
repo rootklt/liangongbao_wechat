@@ -94,6 +94,7 @@ def activity_competition():
         logger.info(resp.text)
     except Exception as e:
         traceback.print_exc()
+        logger.error(e)
 
 
 def regist_competition():
@@ -112,6 +113,7 @@ def regist_competition():
         logger.info(resp.text)
     except Exception as e:
         traceback.print_exc()
+        logger.error(e)
 
 
 def start_competition() -> dict:
@@ -129,12 +131,14 @@ def start_competition() -> dict:
             result_dict = resp.json()
             msg = result_dict.get("result").get("msg")
             code = result_dict.get("result").get("code")
-            if u"挑战已完成" in msg and code == 9:
+            if msg != "成功" and code == 9:
                 logger.info(msg)
                 return {}
             logger.info(result_dict)
             return result_dict
+        return {}
     except Exception as e:
+        traceback.print_exc()
         logger.error(e)
         return {}
 
@@ -144,13 +148,17 @@ def answer_question(result_dict: dict):
     请求参数如下：
     {"quesId":"DABaEtG8ueNjFAA8","answerOptions":["安全评估论证","事故风险辨识","事故风险评估","应急资源调查"]}
 
-    返回：
+    返回正常：
+     {"result":{"msg":"成功"},"data":{"answeredOptions":["对"],"ques":{"quesNo":2,"options":["巡查","督查","统计"],"quesTypeStr":"单选题","quesId":"KBxS1jtKxvbkGCgA","content":"建立完善地方各级党委和政府安全生产（ ）工作制度，加强对下级党委和政府的安全生产巡查，推动安全生产责任措施落实。","quesType":1},"rightOptions":["错"],"remainder":150}}
+    返回异常：
     {"result":{"code":6,"msg":"未开始答题"}}
     '''
     is_finished = False
     answerQues = "https://aqy-app.lgb360.com/aqy/ques/answerQues"
     if not result_dict:
         return
+    start_time = time.time()
+    logger.info(f"开始答题：{start_time}")
     while not is_finished:
         data = result_dict.get("data")
         ques = data.get("ques")
@@ -170,6 +178,8 @@ def answer_question(result_dict: dict):
             opts = answerOptions if quesTypeStr == '多选题' else answerOptions[0]
             data = {"quesId": f"{quesId}",
                     "answerOptions": [f"{opts}"]}
+            qb.write_unkown_ques(
+                {"quesTypeStr": quesTypeStr, "content": content, "optinos": answerOptions})
             logger.info(f'[-]题库无该题:{quesTypeStr}，默认选择答案：{opts}')
 
         try:
@@ -177,32 +187,33 @@ def answer_question(result_dict: dict):
                                   cookies=cookies, verify=False, timeout=15, proxies=proxies)
 
             logger.info(answer.text)
+            #assert answer is None
             if check_finish(answer) or quesNo == 5:
-                logger.info('已经完成答题')
                 is_finished = True
             else:
                 result_dict = answer.json()
+                is_finished = False
         except Exception as e:
+            traceback.print_exc()
             logger.error(e)
-
-        time.sleep(random.randint(2, 5))
+        finally:
+            # 保证在出错的情况下也能执行超时函数，防止死循环
+            time.sleep(random.randint(2, 5))
+            end_time = time.time()
+            if end_time-start_time > 150:  # 2分半钟
+                is_finished = True
+            if is_finished:
+                logger.info(f"答题结束：{start_time}, 最后一题：{quesNo}")
 
 
 def check_finish(answer):
     if not answer or answer.status_code != 200:
         return True
-
-    if 'json' not in answer.headers().get('Content-Type'):
+    if 'json' not in answer.headers.get('Content-Type'):
         return True
-
     result_dict = answer.json()
-    if not result_dict:
-        return True
     data = result_dict.get('data')
-    if not data:
-        return True
-    ques = data.get('ques')
-    return not ques
+    return not data or not data.get('ques')
 
 
 def search_answer(content):
@@ -225,3 +236,13 @@ def process():
     result_dict = start_competition()
     # 4
     answer_question(result_dict)
+
+
+def test():
+    result_dict = {"result": {"msg": "成功"}, "data": {"answeredOptions": ["对"], "ques": {"quesNo": 2, "options": [
+        "巡查", "督查", "统计"], "quesTypeStr": "单选题", "quesId": "KBxS1jtKxvbkGCgA", "content": "建立完善地方各级党委和政府安全生产（ ）工作制度，加强对下级党委和政府的安全生产巡查，推动安全生产责任措施落实。", "quesType": 1}, "rightOptions": ["错"], "remainder": 150}}
+    answer_question(result_dict)
+
+
+if __name__ == '__main__':
+    test()
