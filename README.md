@@ -60,10 +60,19 @@ python3 main.py
 
 ![](./imgs/config_schedule.png)
 
-## TODO
+## Update Log
 
-[1]题库更新
+1. 修改了check_finish函数中获取headers的错误；
+```python
+# 原来为answer.headers().get('xxx')
+# 因为Response对象的headers是属性，不是方法，不能调用。
+# 修改为answer.headers.get('xxxx')
+```
+2. 增加未知题库的收集，保存在unkown_ques.json中。
+3. 在answer_competition函数中增加超时退出循环。
 
-## 参与
+---
+
+## 参考
 
 [https://github.com/nfjBill/liangongbao.git](https://github.com/nfjBill/liangongbao.git)
