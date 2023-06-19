@@ -84,7 +84,7 @@ def activity_competition():
     返回正常json:
     {"result":{"msg":"成功"},"data":{"isRegist":true,"userCode":22573225}}
     '''
-    url = "https://aqy.lgb360.com:443/aqy/regist/activity?memberId=oDuuO0fTFBPjNKcEAVDDlp98b3uw"
+    url = "https://aqy.lgb360.com:443/aqy/regist/activity?memberId=MEMBERID_CHANGE_ME_HERE"
 
     try:
         resp = session.get(url, headers=headers, cookies=cookies, verify=False)
