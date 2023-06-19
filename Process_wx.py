@@ -84,14 +84,14 @@ def activity_competition():
     返回正常json:
     {"result":{"msg":"成功"},"data":{"isRegist":true,"userCode":22573225}}
     '''
-    url = "https://aqy.lgb360.com:443/aqy/regist/activity?memberId=MEMBERID_CHANGE_ME_HERE"
+    url = "https://aqy.lgb360.com:443/aqy/regist/activity?memberId=oDuuO0fTFBPjNKcEAVDDlp98b3uw"
 
     try:
-        resp = session.get(url, headers=headers, cookies=cookies)
+        resp = session.get(url, headers=headers, cookies=cookies, verify=False)
         if 'json' in resp.headers.get('Content-Type') and resp.status_code == 200:
-            logger.info(resp.json())
+            logger.info(resp.text)
             return
-        logger.info(resp.text)
+        logger.warning(resp.text)
     except Exception as e:
         traceback.print_exc()
         logger.error(e)
@@ -108,9 +108,9 @@ def regist_competition():
         resp = session.get(url, headers=headers,
                            cookies=cookies, verify=False, proxies=proxies)
         if 'json' in resp.headers.get('Content-Type') and resp.status_code == 200:
-            logger.info(resp.json())
+            logger.info(resp.text)
             return
-        logger.info(resp.text)
+        logger.warning(resp.text)
     except Exception as e:
         traceback.print_exc()
         logger.error(e)
@@ -161,6 +161,8 @@ def answer_question(result_dict: dict):
     logger.info(f"开始答题：{start_time}")
     while not is_finished:
         data = result_dict.get("data")
+        if not data:
+            break
         ques = data.get("ques")
         if not ques:
             return
@@ -213,6 +215,9 @@ def check_finish(answer):
         return True
     result_dict = answer.json()
     data = result_dict.get('data')
+    if not data:
+        return True
+
     return not data or not data.get('ques')
 
 

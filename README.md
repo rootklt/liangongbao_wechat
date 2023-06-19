@@ -54,6 +54,10 @@ ACW_TC_CHANGE_ME_HERE: 替换为acw_tc, 这个是答题服务端返回的cookie
 python3 main.py
 ```
 
+### 效果
+
+![](./imgs/answer_success.png)
+
 ## Others
 
 可根据个人要求配置`main.py`中的计划时间和请求频率。
@@ -63,12 +67,15 @@ python3 main.py
 ## Update Log
 
 1. 修改了check_finish函数中获取headers的错误；
+
 ```python
 # 原来为answer.headers().get('xxx')
 # 因为Response对象的headers是属性，不是方法，不能调用。
 # 修改为answer.headers.get('xxxx')
 ```
+
 2. 增加未知题库的收集，保存在unkown_ques.json中。
+
 3. 在answer_competition函数中增加超时退出循环。
 
 ---
