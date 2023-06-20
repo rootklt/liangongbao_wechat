@@ -179,7 +179,7 @@ def answer_question(result_dict: dict):
             ''''''
             opts = answerOptions if quesTypeStr == '多选题' else answerOptions[0]
             data = {"quesId": f"{quesId}",
-                    "answerOptions": [f"{opts}"]}
+                    "answerOptions": opts}
             qb.write_unkown_ques(
                 {"quesTypeStr": quesTypeStr, "content": content, "optinos": answerOptions})
             logger.info(f'[-]题库无该题:{quesTypeStr}，默认选择答案：{opts}')
