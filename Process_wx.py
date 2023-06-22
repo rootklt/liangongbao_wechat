@@ -143,6 +143,46 @@ def start_competition() -> dict:
         return {}
 
 
+def search_answer(result_dict):
+    '''
+    从题库搜索答案
+    '''
+    quesNo = 1
+    data = {"quesId": "", "answerOptions": ["对"]}
+    try:
+        data = result_dict.get("data")
+        assert data and isinstance(data, dict)
+        ques = data.get("ques")
+        assert ques and isinstance(ques, dict)
+
+        quesId = ques.get("quesId")
+        answerOptions = ques.get("options")
+        assert answerOptions and isinstance(answerOptions, list)
+
+        quesNo = ques.get('quesNo')
+        content = ques.get('content')
+        quesTypeStr = ques.get('quesTypeStr')
+
+        if rightAnswer := qb.getAnswer(content):
+            data = {"quesId": quesId, "answerOptions": rightAnswer}
+            logger.info("题目：{quesNo}, rightAnswer", data)
+        else:
+            '''
+            题库未找到时，则默认选
+            '''
+            opts = answerOptions if quesTypeStr == '多选题' else answerOptions[0]
+            data = {"quesId": quesId,
+                    "answerOptions": opts}
+            qb.write_unkown_ques(
+                {"quesTypeStr": quesTypeStr, "content": content, "optinos": answerOptions})
+            logger.info(f'[-]题库无该题:{quesTypeStr}，默认选择答案：{opts}')
+    except Exception as e:
+        traceback.print_exc()
+        logger.error(e)
+    finally:
+        return quesNo, data
+
+
 def answer_question(result_dict: dict):
     '''
     请求参数如下：
@@ -153,79 +193,35 @@ def answer_question(result_dict: dict):
     返回异常：
     {"result":{"code":6,"msg":"未开始答题"}}
     '''
-    is_finished = False
-    answerQues = "https://aqy-app.lgb360.com/aqy/ques/answerQues"
     if not result_dict:
         return
+
+    is_finished = False
+    answerQues = "https://aqy-app.lgb360.com/aqy/ques/answerQues"
     start_time = time.time()
     logger.info(f"开始答题：{start_time}")
+    quesNo = 1
     while not is_finished:
-        data = result_dict.get("data")
-        if not data:
-            break
-        ques = data.get("ques")
-        if not ques:
-            return
-        quesId = ques.get("quesId")
-        answerOptions = ques.get("options")
-        quesNo = ques.get('quesNo')
-        content = ques.get('content')
-        quesTypeStr = ques.get('quesTypeStr')
-
-        if rightAnswer := search_answer(content):
-            data = {"quesId": f"{quesId}", "answerOptions": rightAnswer}
-            logger.info("题目：{quesNo}, rightAnswer", data)
-        else:
-            ''''''
-            opts = answerOptions if quesTypeStr == '多选题' else answerOptions[0]
-            data = {"quesId": f"{quesId}",
-                    "answerOptions": opts}
-            qb.write_unkown_ques(
-                {"quesTypeStr": quesTypeStr, "content": content, "optinos": answerOptions})
-            logger.info(f'[-]题库无该题:{quesTypeStr}，默认选择答案：{opts}')
-
         try:
+            quesNo, data = search_answer(result_dict)
             answer = session.post(answerQues, json=data, headers=headers,
                                   cookies=cookies, verify=False, timeout=15, proxies=proxies)
-
             logger.info(answer.text)
-            #assert answer is None
-            if check_finish(answer) or quesNo == 5:
-                is_finished = True
-            else:
+            if answer and 'json' in answer.headers.get('Content-Type'):
                 result_dict = answer.json()
-                is_finished = False
+            else:
+                result_dict = {'data': answer.text}
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
         finally:
-            # 保证在出错的情况下也能执行超时函数，防止死循环
-            time.sleep(random.randint(2, 5))
+            # 保证在出错的情况下也能执行超时函数，防止死循环ss
             end_time = time.time()
-            if end_time-start_time > 150:  # 2分半钟
+            if end_time-start_time > 150 or quesNo == 5:  # 2分半钟
                 is_finished = True
-            if is_finished:
-                logger.info(f"答题结束：{start_time}, 最后一题：{quesNo}")
-
-
-def check_finish(answer):
-    if not answer or answer.status_code != 200:
-        return True
-    if 'json' not in answer.headers.get('Content-Type'):
-        return True
-    result_dict = answer.json()
-    data = result_dict.get('data')
-    if not data:
-        return True
-
-    return not data or not data.get('ques')
-
-
-def search_answer(content):
-    '''
-    从题库搜索答案
-    '''
-    return qb.getAnswer(content)
+                logger.info(f"答题结束,用时：{end_time-start_time}, 最后一题：{quesNo}")
+                break
+            time.sleep(random.randint(6, 9))
 
 
 # {'https': 'http://127.0.0.1:8080', 'http': 'http://127.0.0.1:8080'}
