@@ -165,7 +165,7 @@ def search_answer(result_dict):
 
         if rightAnswer := qb.getAnswer(content):
             data = {"quesId": quesId, "answerOptions": rightAnswer}
-            logger.info("题目：{quesNo}, rightAnswer", data)
+            logger.info(f"题目：{quesNo}, rightAnswer:{data}")
         else:
             '''
             题库未找到时，则默认选
